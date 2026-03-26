@@ -5,8 +5,32 @@ from bs4 import BeautifulSoup
 import re
 from urllib.parse import urlparse
 
+# Global state for a single crawl session
 visited_urls = set()
 saved_files = []
+cancel_flag = False
+
+
+def reset_state():
+    """Reset crawl state between runs.
+
+    This ensures each new crawl starts fresh and does not reuse URLs or files
+    from previous sessions.
+    """
+    global visited_urls, saved_files, cancel_flag
+    visited_urls = set()
+    saved_files = []
+    cancel_flag = False
+
+
+def request_cancel():
+    """Signal that the current crawl should be cancelled.
+
+    The crawl loop checks this flag periodically and stops as soon as
+    possible.
+    """
+    global cancel_flag
+    cancel_flag = True
 
 def get_internal_links(base_url, soup):
     internal_links = set()
@@ -56,6 +80,11 @@ def save_page_content(content_url, soup, output_dir='scraped_content'):
 
 
 def crawl_website(url, depth=2, delay=1):
+    # Stop early if a cancel has been requested
+    if cancel_flag:
+        print("Crawl cancelled, stopping.")
+        return None
+
     if depth == 0 or url in visited_urls:
         return None
     try:
@@ -72,11 +101,15 @@ def crawl_website(url, depth=2, delay=1):
             saved_files.append(file_path)
         visited_urls.add(url)
 
-        time.sleep(1)  # Be polite and avoid overwhelming the server
+        time.sleep(delay)  # Be polite and avoid overwhelming the server
 
         links = get_internal_links(url, soup)
         for link in links:
-            crawl_website(link, depth - 1)
+            if cancel_flag:
+                print("Crawl cancelled during link traversal, stopping.")
+                break
+            crawl_website(link, depth - 1, delay=delay)
+
         return saved_files
     except Exception as e:
         print(f"Error crawling {url}: {e}")

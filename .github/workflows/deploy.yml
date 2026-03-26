@@ -1,0 +1,45 @@
+name: build the docker image and deploy on aws
+
+on: 
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    run-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v6
+
+      - name: build docker image from dockerfile
+        run: docker build -t qna-chatbot:latest .
+
+      - name: login to docker hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: push docker image to docker hub
+        run: docker push qna-chatbot:latest
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: deploy to aws
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.AWS_SSH_KEY }}
+          script: |
+            docker pull qna-chatbot:latest
+            docker stop qna-chatbot || true
+            docker rm qna-chatbot || true
+            docker run -d --name qna-chatbot -p 127.0.0.18000:8000 \
+            -e OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
+            qna-chatbot:latest
