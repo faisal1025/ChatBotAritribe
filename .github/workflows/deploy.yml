@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    run-on: ubuntu-latest
+    runs-on: ubuntu-latest
 
     steps:
       - name: Check out the repository
@@ -35,11 +35,11 @@ jobs:
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.AWS_SSH_KEY }}
+          key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             docker pull qna-chatbot:latest
             docker stop qna-chatbot || true
             docker rm qna-chatbot || true
-            docker run -d --name qna-chatbot -p 127.0.0.18000:8000 \
+            docker run -d --name qna-chatbot -p 127.0.0.1:8000:8000 \
             -e OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
             qna-chatbot:latest
