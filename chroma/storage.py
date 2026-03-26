@@ -56,8 +56,12 @@ def semantic_search(user_prompt, collection_name="documents", n_results=3):
 
 
 def save_context(embeddings, chunks, metadata, collection_name="documents"):
-    collection = chroma_client.get_or_create_collection(name=collection_name)
+    # Guard against attempting to save empty data sets
+    if not embeddings or not chunks or not metadata:
+        print("No embeddings/chunks/metadata to save; skipping Chroma save.")
+        return False
 
+    collection = chroma_client.get_or_create_collection(name=collection_name)
 
     ids = [f"{meta.get('filename', 'unknown')}_{i}" for meta, i in zip(metadata, range(len(metadata)))]
 
@@ -69,6 +73,20 @@ def save_context(embeddings, chunks, metadata, collection_name="documents"):
     )
 
     return True
+
+
+def clear_context(collection_name: str = "documents"):
+    """Delete all stored context for the given collection.
+
+    Used to ensure each crawl starts from a clean slate and to roll back
+    context when a crawl is cancelled.
+    """
+    try:
+        chroma_client.delete_collection(name=collection_name)
+        print(f"Cleared Chroma collection: {collection_name}")
+    except Exception as e:
+        # If the collection does not exist yet or cannot be deleted, log and move on
+        print(f"Warning: could not clear Chroma collection '{collection_name}': {e}")
 
 def query_context(query_embedding, collection_name="documents", n_results=3):
     """Query similar documents from ChromaDB"""

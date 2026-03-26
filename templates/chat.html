@@ -1,0 +1,117 @@
+{% extends 'layout.html' %}
+
+{% block title %}Chat - Q&A ChatBot{% endblock %}
+
+{% block head %}
+<style>
+    .chat-container { display: flex; flex-direction: column; height: 60vh; }
+    #chatWindow {
+        flex: 1;
+        border-radius: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        padding: 10px 12px;
+        overflow-y: auto;
+        margin-bottom: 12px;
+        background: radial-gradient(circle at top left, rgba(79, 70, 229, 0.16), transparent 55%),
+                    radial-gradient(circle at bottom right, rgba(15, 23, 42, 0.95), #020617);
+    }
+    .message { margin: 6px 0; display: flex; flex-direction: column; gap: 2px; }
+    .user, .bot { font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase; }
+    .user { color: #a5b4fc; }
+    .bot { color: #6ee7b7; }
+    .bubble {
+        display: inline-block;
+        padding: 8px 10px;
+        border-radius: 12px;
+        max-width: 82%;
+        font-size: 0.92rem;
+    }
+    .bubble-user {
+        background: linear-gradient(135deg, rgba(79, 70, 229, 0.7), rgba(59, 130, 246, 0.85));
+        align-self: flex-end;
+    }
+    .bubble-bot {
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(17, 24, 39, 0.95));
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        align-self: flex-start;
+    }
+    #inputRow { display: flex; gap: 8px; }
+    #promptInput { flex: 1; }
+    #sendBtn { margin-left: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2>Chat with Q&A Bot</h2>
+<div class="chat-container">
+    <div id="chatWindow"></div>
+    <div id="inputRow">
+        <input type="text" id="promptInput" placeholder="Type your question and press Enter..." />
+        <button id="sendBtn">Send</button>
+    </div>
+</div>
+
+<script>
+    const chatWindow = document.getElementById('chatWindow');
+    const promptInput = document.getElementById('promptInput');
+    const sendBtn = document.getElementById('sendBtn');
+
+    function appendMessage(role, text) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'message';
+
+        const label = document.createElement('span');
+        label.className = role === 'user' ? 'user' : 'bot';
+        label.textContent = role === 'user' ? 'You: ' : 'Bot: ';
+
+        const bubble = document.createElement('span');
+        bubble.className = 'bubble ' + (role === 'user' ? 'bubble-user' : 'bubble-bot');
+        bubble.textContent = text;
+
+        wrapper.appendChild(label);
+        wrapper.appendChild(bubble);
+        chatWindow.appendChild(wrapper);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    async function sendMessage() {
+        const text = promptInput.value.trim();
+        if (!text) return;
+        appendMessage('user', text);
+        promptInput.value = '';
+        appendMessage('bot', 'Thinking...');
+
+        try {
+            const res = await fetch('/ask', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: text })
+            });
+            const data = await res.json();
+
+            // Remove the "Thinking..." placeholder
+            const lastChild = chatWindow.lastElementChild;
+            if (lastChild && lastChild.textContent.startsWith('Bot: Thinking')) {
+                chatWindow.removeChild(lastChild);
+            }
+
+            if (res.ok) {
+                const answer = (data && data.response) ? data.response : 'No response field in /ask result.';
+                appendMessage('bot', answer);
+            } else {
+                const errText = (data && data.error) ? data.error : 'Request failed.';
+                appendMessage('bot', 'Error: ' + errText);
+            }
+        } catch (err) {
+            appendMessage('bot', 'Error calling /ask: ' + err);
+        }
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    promptInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+</script>
+{% endblock %}

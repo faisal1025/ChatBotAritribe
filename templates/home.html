@@ -1,0 +1,76 @@
+{% extends 'layout.html' %}
+
+{% block title %}Crawler - Q&A ChatBot{% endblock %}
+
+{% block head %}
+<style>
+    label { display: block; margin-bottom: 8px; font-size: 0.9rem; }
+    #status { margin-top: 16px; white-space: pre-wrap; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2>Crawl a Website</h2>
+<p>Enter a URL to crawl and index its content for the chatbot.</p>
+<label for="urlInput">Website URL:</label>
+<input type="text" id="urlInput" placeholder="https://example.com" />
+<button id="crawlBtn">Start Crawl</button>
+<button id="cancelBtn" type="button">Cancel Crawl</button>
+<div id="status" class="status-text"></div>
+
+<script>
+    document.getElementById('crawlBtn').addEventListener('click', async function() {
+        const url = document.getElementById('urlInput').value.trim();
+        const statusEl = document.getElementById('status');
+        if (!url) {
+            statusEl.textContent = "Please enter a URL.";
+            statusEl.className = "status-text error";
+            return;
+        }
+        statusEl.textContent = "Crawling in progress...";
+        statusEl.className = "status-text";
+
+        try {
+            const res = await fetch('/crawl', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: url })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                statusEl.textContent = data.message || "Crawling and embedding completed successfully.";
+                statusEl.className = "status-text success";
+            } else {
+                statusEl.textContent = data.error || "Crawling failed.";
+                statusEl.className = "status-text error";
+            }
+        } catch (err) {
+            statusEl.textContent = "Error calling /crawl: " + err;
+            statusEl.className = "status-text error";
+        }
+    });
+
+    document.getElementById('cancelBtn').addEventListener('click', async function() {
+        const statusEl = document.getElementById('status');
+        statusEl.textContent = "Cancelling crawl...";
+        statusEl.className = "status-text";
+
+        try {
+            const res = await fetch('/crawl/cancel', {
+                method: 'POST'
+            });
+            const data = await res.json();
+            if (res.ok) {
+                statusEl.textContent = data.message || "Crawling cancelled and data cleared.";
+                statusEl.className = "status-text success";
+            } else {
+                statusEl.textContent = data.error || "Failed to cancel crawl.";
+                statusEl.className = "status-text error";
+            }
+        } catch (err) {
+            statusEl.textContent = "Error calling /crawl/cancel: " + err;
+            statusEl.className = "status-text error";
+        }
+    });
+</script>
+{% endblock %}
