@@ -37,9 +37,9 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            docker pull ${{ secrets.EC2_USERNAME }}/qna-chatbot:latest
-            docker stop qna-chatbot || true
-            docker rm qna-chatbot || true
-            docker run -d --name qna-chatbot -p 127.0.0.1:8080:8000 \
+            docker pull ${{ secrets.DOCKER_USERNAME }}/qna-chatbot:latest
+            docker stop qna-chatbot || true 
+            docker rm qna-chatbot || true 
+            docker run -d --restart unless-stopped -p 127.0.0.1:8080:8000 \
             -e OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
-            ${{ secrets.EC2_USERNAME }}/qna-chatbot:latest
+            --name qna-chatbot ${{ secrets.DOCKER_USERNAME }}/qna-chatbot:latest
