@@ -79,7 +79,7 @@ def save_page_content(content_url, soup, output_dir='scraped_content'):
         return None
 
 
-def crawl_website(url, depth=2, delay=1):
+def crawl_website(url, depth=1, delay=1):
     # Stop early if a cancel has been requested
     if cancel_flag:
         print("Crawl cancelled, stopping.")
@@ -88,7 +88,9 @@ def crawl_website(url, depth=2, delay=1):
     if depth == 0 or url in visited_urls:
         return None
     try:
-        response = requests.get(url)
+        print(f"Crawling: {url}", flush=True)
+        response = requests.get(url, timeout=(5, 20))
+        print(f"Done: {url}", flush=True)
         if response.status_code != 200:
             print(f"Failed to retrieve {url}")
             return None
