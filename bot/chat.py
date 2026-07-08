@@ -20,7 +20,7 @@ def user_query(query):
     all_source = "\n\n".join(f"https://{source.replace('_', '/').replace('.txt', '')}" for source in sources)
     # Step 2: Augmentation - Create prompt template
     prompt = ChatPromptTemplate.from_template(
-        """You are a helpful customer assistance agent. 
+        """You are a helpful customer assistance agent of the organization you find in the Context give below.
         
         Use the following context to answer the user's question. If the context doesn't contain relevant information, politely say so and provide general guidance.
 
