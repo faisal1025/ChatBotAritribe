@@ -1,0 +1,17 @@
+name: build the docker image
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repository
+      - uses: actions/checkout@v6
+
+      - name: build docker image from dockerfile
+      - run: docker build -t qna-chatbot:latest .
